@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 const morgan = require('morgan');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const crypto = require("crypto");
 
 // Load environment variables
 dotenv.config();
@@ -29,7 +28,4 @@ app.get('/', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    const secret = crypto.randomBytes(64).toString("hex");
-    console.log("Generated JWT_SECRET:", secret);
-    console.log(`My server running on port ${PORT}`)});
+app.listen(PORT, () => console.log(`My server running on port ${PORT}`));
