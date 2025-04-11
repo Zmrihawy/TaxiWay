@@ -1,4 +1,5 @@
 const Ride = require('../models/Ride');
+const User = require('../models/User');
 
 // @desc Request a ride
 // @route POST /api/rides/request
@@ -102,9 +103,38 @@ const getMyRides = async (req, res) => {
     }
 };
 
+// @desc Get nearby drivers for rider
+// @route GET /api/rides/nearby-drivers
+// @access Private
+const getNearbyDrivers = async (req, res) => {
+    const { lat, lng, maxDistance = 5000 } = req.query;
+  
+    if (!lat || !lng) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+  
+    try {
+      const drivers = await User.find({
+        role: 'driver',
+        currentLocation: {
+          $near: {
+            $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+            $maxDistance: parseInt(maxDistance) // in meters
+          }
+        }
+      }).select('-password'); // exclude password field
+  
+      res.json({ count: drivers.length, drivers });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to fetch nearby drivers' });
+    }
+  };
+
 module.exports = {
     requestRide,
     acceptRide,
     updateRideStatus,
-    getMyRides
+    getMyRides,
+    getNearbyDrivers
 };
