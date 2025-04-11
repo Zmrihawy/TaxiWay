@@ -48,4 +48,30 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile, getAllUsers };
+// @desc Update user GPS location
+const updateLocation = async (req, res) => {
+    const { lat, lng } = req.body;
+  
+    if (!lat || !lng) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+  
+    try {
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          currentLocation: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        },
+        { new: true }
+      );
+  
+      res.json({ message: 'Location updated', location: user.currentLocation });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to update location' });
+    }
+  };
+
+module.exports = { getProfile, updateProfile, getAllUsers, updateLocation };
