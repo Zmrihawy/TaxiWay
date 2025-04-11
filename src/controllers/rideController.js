@@ -4,6 +4,11 @@ const Ride = require('../models/Ride');
 // @route POST /api/rides/request
 // @access Private (Rider)
 const requestRide = async (req, res) => {
+        // Only rider can request a ride (We can ofcourse edit this later)
+    if (req.user.role !== 'rider') {
+        return res.status(403).json({ message: 'Only riders can request rides' });
+    }
+
     const { pickupLocation, dropoffLocation, paymentMethod } = req.body;
 
     try {
@@ -24,6 +29,11 @@ const requestRide = async (req, res) => {
 // @route PUT /api/rides/:id/accept
 // @access Private (Driver)
 const acceptRide = async (req, res) => {
+        // Only driver can accept a ride (We can ofcourse add admins here later)
+    if (req.user.role !== 'driver') {
+        return res.status(403).json({ message: 'Only drivers can accept rides' });
+    }
+
     try {
         const ride = await Ride.findById(req.params.id);
 
@@ -53,6 +63,21 @@ const updateRideStatus = async (req, res) => {
         if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
         // For later: add authorization check here
+
+        // Ensure current user is involved in this ride (Rider owner the ride OR the driver who accepted the ride)
+        const isOwner = [ride.rider.toString(), ride.driver?.toString()].includes(req.user._id.toString());
+        if (!isOwner) return res.status(403).json({ message: 'You are not authorized to update this ride' });
+
+        // Role-based allowed statuses
+        const ALLOWED_STATUSES_BY_ROLE = {
+            rider: ['cancelled'],
+            driver: ['in_progress', 'completed', 'cancelled']
+        };
+
+        if (!ALLOWED_STATUSES_BY_ROLE[req.user.role]?.includes(status)) {
+            return res.status(403).json({ message: 'Not allowed to set this status' });
+        }
+
         ride.status = status;
         await ride.save();
 
