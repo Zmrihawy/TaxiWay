@@ -21,6 +21,7 @@ app.use(morgan('dev')); // Log requests,
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/rides', require('./routes/rideRoutes'));
 
 // Default route
 app.get('/', (req, res) => {
