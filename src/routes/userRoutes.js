@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
-const { getProfile, updateProfile, getAllUsers } = require('../controllers/userController');
+const { getProfile, updateProfile, getAllUsers, updateLocation } = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -15,5 +15,9 @@ router.put('/profile', protect, updateProfile);
 // @route GET /api/users - Get all users (Admin only)
 // @access Private/Admin
 router.get('/', protect, adminOnly, getAllUsers);
+
+// @route PUT /api/location - Update user location
+// @access Private
+router.put('/location', protect, updateLocation);
 
 module.exports = router;
