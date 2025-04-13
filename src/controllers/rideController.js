@@ -116,6 +116,7 @@ const getNearbyDrivers = async (req, res) => {
     try {
       const drivers = await User.find({
         role: 'driver',
+        availability: 'ready', // only show available drivers
         currentLocation: {
           $near: {
             $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
