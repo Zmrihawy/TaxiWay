@@ -57,34 +57,75 @@ const acceptRide = async (req, res) => {
 // @route PUT /api/rides/:id/status
 // @access Private (Driver or Rider)
 const updateRideStatus = async (req, res) => {
-    const { status } = req.body;
+    const { status: newStatus } = req.body;
+    const userId = req.user._id;
+    const userRole = req.user.role;
+  
     try {
-        const ride = await Ride.findById(req.params.id);
-
-        if (!ride) return res.status(404).json({ message: 'Ride not found' });
-
-        // For later: add authorization check here
-
-        // Ensure current user is involved in this ride (Rider owner the ride OR the driver who accepted the ride)
-        const isOwner = [ride.rider.toString(), ride.driver?.toString()].includes(req.user._id.toString());
-        if (!isOwner) return res.status(403).json({ message: 'You are not authorized to update this ride' });
-
-        // Role-based allowed statuses
-        const ALLOWED_STATUSES_BY_ROLE = {
-            rider: ['cancelled'],
-            driver: ['in_progress', 'completed', 'cancelled']
-        };
-
-        if (!ALLOWED_STATUSES_BY_ROLE[req.user.role]?.includes(status)) {
-            return res.status(403).json({ message: 'Not allowed to set this status' });
+      const ride = await Ride.findById(req.params.id);
+  
+      if (!ride) return res.status(404).json({ message: 'Ride not found' });
+  
+      // Check if user is involved in the ride (rider or driver)
+      const isInvolved = [ride.rider?.toString(), ride.driver?.toString()].includes(userId.toString());
+      if (!isInvolved) return res.status(403).json({ message: 'You are not authorized to update this ride' });
+  
+      // Role-based status permissions
+      const ALLOWED_STATUSES_BY_ROLE = {
+        rider: ['cancelled'],
+        driver: ['accepted', 'in_progress', 'completed', 'cancelled', 'rejected']
+      };
+  
+      if (!ALLOWED_STATUSES_BY_ROLE[userRole]?.includes(newStatus)) {
+        return res.status(403).json({ message: 'You are not allowed to set this status' });
+      }
+  
+      // Validate status transitions
+      const ALLOWED_TRANSITIONS = {
+        requested: ['accepted', 'rejected', 'cancelled'],
+        accepted: ['in_progress', 'cancelled'],
+        in_progress: ['completed'],
+      };
+  
+      const currentStatus = ride.status;
+      const allowedNextStatuses = ALLOWED_TRANSITIONS[currentStatus] || [];
+  
+      if (!allowedNextStatuses.includes(newStatus)) {
+        return res.status(400).json({ message: `Cannot change status from '${currentStatus}' to '${newStatus}'` });
+      }
+  
+      // If driver is accepting, ensure they’re available
+      if (newStatus === 'accepted' && userRole === 'driver') {
+        const driver = await User.findById(userId);
+        if (driver.availability !== 'ready') {
+          return res.status(400).json({
+            message: `You cannot accept a new ride while your status is '${driver.availability}'`
+          });
         }
-
-        ride.status = status;
-        await ride.save();
-
-        res.json(ride);
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating status' });
+  
+        // Assign driver to ride and set availability to onTrip
+        ride.driver = driver._id;
+        driver.availability = 'onTrip';
+        await driver.save();
+      }
+  
+      // If ride is completed/rejected/cancelled by driver — set availability back to ready
+      if (
+        userRole === 'driver' &&
+        ['completed', 'rejected', 'cancelled'].includes(newStatus)
+      ) {
+        const driver = await User.findById(userId);
+        driver.availability = 'ready';
+        await driver.save();
+      }
+  
+      ride.status = newStatus;
+      await ride.save();
+  
+      res.json(ride);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error updating ride status' });
     }
 };
 
