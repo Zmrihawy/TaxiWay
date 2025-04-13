@@ -8,6 +8,11 @@ const UserSchema = new mongoose.Schema({
     role: { type: String, enum: ['rider', 'driver', 'admin'], default: 'rider' },
     rating: { type: Number, default: 5.0 },
     profileImage: { type: String },
+    availability: {
+        type: String,
+        enum: ['ready', 'offline', 'onTrip', 'busy', 'unavailable'], // (onTrip, unavailable) can only be set from the system\admin
+        default: 'offline',
+      },
     currentLocation: {
         type: {
           type: String,

@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
-const { getProfile, updateProfile, getAllUsers, updateLocation } = require('../controllers/userController');
+const { getProfile, updateProfile, getAllUsers, updateLocation, updateDriverAvailability } = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -19,5 +19,9 @@ router.get('/', protect, adminOnly, getAllUsers);
 // @route PUT /api/location - Update user location
 // @access Private
 router.put('/location', protect, updateLocation);
+
+// @route PUT /api/availability - Update driver availability
+// @access Private/Driver
+router.put('/availability', protect, updateDriverAvailability);
 
 module.exports = router;

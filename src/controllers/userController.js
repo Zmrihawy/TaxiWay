@@ -74,4 +74,33 @@ const updateLocation = async (req, res) => {
     }
   };
 
-module.exports = { getProfile, updateProfile, getAllUsers, updateLocation };
+// @desc Toggle driver availability (online/offline)
+// @route PUT /api/users/availability
+// @access Private (driver only)
+const updateDriverAvailability = async (req, res) => {
+    const { availability } = req.body;
+    const validStatuses = ['offline', 'ready', 'busy']; // Only these statuses can be set from a driver 
+  
+    if (!validStatuses.includes(availability)) {
+      return res.status(400).json({
+         message: `Invalid availability value. Drivers can only set: ${validStatuses.join(', ')}`
+         });
+    }
+  
+    try {
+      const user = await User.findById(req.user._id);
+  
+      if (user.role !== 'driver') {
+        return res.status(403).json({ message: 'Only drivers can update availability' });
+      }
+  
+      user.availability = availability;
+      await user.save();
+  
+      res.json({ message: `Availability updated to ${availability}`, availability });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to update availability' });
+    }
+  };
+
+module.exports = { getProfile, updateProfile, getAllUsers, updateLocation, updateDriverAvailability };
